@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "canproxy", "canproxy\canproxy.vcxproj", "{68131D08-1942-4DC7-8197-4CB4415EED2A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "candemo", "candemo\candemo.vcxproj", "{68131D08-1942-4DC7-8197-4CB4415EED2A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tapdemo", "tapdemo\tapdemo.vcxproj", "{7DEBF096-9548-46F6-8280-C4BF19310266}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "canproxy", "canproxy\canproxy.vcxproj", "{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,14 @@ Global
 		{7DEBF096-9548-46F6-8280-C4BF19310266}.Release|x64.Build.0 = Release|x64
 		{7DEBF096-9548-46F6-8280-C4BF19310266}.Release|x86.ActiveCfg = Release|Win32
 		{7DEBF096-9548-46F6-8280-C4BF19310266}.Release|x86.Build.0 = Release|Win32
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Debug|x64.ActiveCfg = Debug|x64
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Debug|x64.Build.0 = Debug|x64
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Debug|x86.ActiveCfg = Debug|Win32
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Debug|x86.Build.0 = Debug|Win32
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Release|x64.ActiveCfg = Release|x64
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Release|x64.Build.0 = Release|x64
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Release|x86.ActiveCfg = Release|Win32
+		{5D18CC2B-84E1-4A80-93CF-4196853CCAC4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

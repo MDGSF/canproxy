@@ -1,141 +1,147 @@
 #include <stdio.h>
 #include <Windows.h>
-#include <thread>
 #include <iostream>
-#include <mutex>
 #include "CProxy.h"
 #include "ControlCAN.h"
+#include "log.h"
 
 using namespace std;
 
-void ReceiveTunThread(CProxy* proxy)
-{
-	printf("ReceiveTunThread start");
-	while (true)
-	{
-		const int iCanObjBufLen = 1;
-		VCI_CAN_OBJ pCanObj[iCanObjBufLen];
-		for (int i = 0; i < iCanObjBufLen; i++)
-		{
-			pCanObj[i].ID = i;
-			pCanObj[i].RemoteFlag = 0;
-			pCanObj[i].ExternFlag = 0;
-			pCanObj[i].DataLen = 8;
-			for (int j = 0; j < 8; j++)
-			{
-				pCanObj[i].Data[j] = j;
-			}
-		}
-		int ret = VCI_Transmit(proxy->m_iDevType, proxy->m_iDevIndex, proxy->m_iCanIndex, pCanObj, iCanObjBufLen);
-		if (ret == -1) 
-		{
-			// USB-CAN设备不存在或USB掉线
-			return;
-		}
-		printf("send ret = %d\n", ret);
-		Sleep(3000);
-	}
-}
+#define DEFAULT_BUFSIZE 4096
 
-CProxy::CProxy()
+CProxy::CProxy(CNode* pstNode1, CNode* pstNode2)
 {
-	printf("CPoxy constructor\n");
-	m_iDevType = VCI_USBCAN2;
-	m_iDevIndex = 0;
-	m_iCanIndex = 0;
+	m_pstNode1 = pstNode1;
+	m_pstNode2 = pstNode2;
+	m_bTerminate = true;
 }
 
 CProxy::~CProxy()
 {
+
 }
 
-int CProxy::m_Start()
+void ThreadNode1ToNode2(CProxy* proxy)
 {
-	printf("proxy start\n");
-
-	int ret = VCI_OpenDevice(m_iDevType, m_iDevIndex, 0);
-	if (ret != 1)
+	LOG(EInfo, CANPROXY, "ThreadNode1ToNode2 start\n");
+	char acBuf[DEFAULT_BUFSIZE] = { 0 };
+	int iReaded = 0;
+	int iWrited = 0;
+	while (!proxy->m_bGetTerminate())
 	{
-		printf("open device failed, ret = %d\n", ret);
-		return -1;
+		iReaded = proxy->m_pstNode1->m_iRead(acBuf, DEFAULT_BUFSIZE);
+		if (iReaded < 0)
+		{
+			LOG(EError, CANPROXY, "node1 read failed, iReaded = %d\n", iReaded);
+			break;
+		}
+		if (iReaded == 0)
+		{
+			continue;
+		}
+
+		LOG(ETrace, CANPROXY, "node1 read success, iReaded = %d\n", iReaded);
+
+		iWrited = proxy->m_pstNode2->m_iWrite(acBuf, iReaded);
+		if (iWrited < 0)
+		{
+			LOG(EError, CANPROXY, "node2 write failed, iWrited = %d\n", iWrited);
+			break;
+		}
 	}
-
-	VCI_INIT_CONFIG InitInfo[1];
-	InitInfo->Timing0 = 0x00;
-	InitInfo->Timing1 = 0x1C;
-	InitInfo->Filter = 0;
-	InitInfo->AccCode = 0x80000008;
-	InitInfo->AccMask = 0xFFFFFFFF;
-	InitInfo->Mode = 2;
-	//初始化通道0
-	if (VCI_InitCAN(m_iDevType, m_iDevIndex, m_iCanIndex, InitInfo) != 1)
-	{
-		printf("Init-CAN failed!");
-		return -1;
-	}
-	Sleep(100);
-	//初始化通道0
-	if (VCI_StartCAN(m_iDevType, m_iDevIndex, m_iCanIndex) != 1)
-	{
-		printf("Start-CAN failed!");
-		return -1;
-	}
-
-	printf("proxy start success\n");
-
-	std::thread t1(ReceiveTunThread, this);
-
-	ReceiveCanThread();
-
-	t1.join();
-
-	return 0;
+	LOG(EInfo, CANPROXY, "ThreadNode1ToNode2 end\n");
 }
 
-void CProxy::ReceiveCanThread()
+void ThreadNode2ToNode1(CProxy* proxy)
 {
-	while (true)
+	LOG(EInfo, CANPROXY, "ThreadNode2ToNode1 start\n");
+	char acBuf[DEFAULT_BUFSIZE] = { 0 };
+	int iReaded = 0;
+	int iWrited = 0;
+	while (!proxy->m_bGetTerminate())
 	{
-		const int iCanObjBufLen = 200;
-		VCI_CAN_OBJ pCanObj[iCanObjBufLen];
-		int iReceived = VCI_Receive(m_iDevType, m_iDevIndex, m_iCanIndex, pCanObj, iCanObjBufLen, 0);
-		if (iReceived == -1)
+		iReaded = proxy->m_pstNode2->m_iRead(acBuf, DEFAULT_BUFSIZE);
+		if (iReaded < 0)
 		{
-			// USB-CAN设备不存在或USB掉线
-			return;
+			LOG(EError, CANPROXY, "node2 read failed, iReaded = %d\n", iReaded);
+			break;
+		}
+		if (iReaded == 0)
+		{
+			continue;
 		}
 
-		for (int i = 0; i < iReceived; i++)
+		LOG(ETrace, CANPROXY, "node2 read success, iReaded = %d\n", iReaded);
+
+		iWrited = proxy->m_pstNode1->m_iWrite(acBuf, iReaded);
+		if (iWrited < 0)
 		{
-			printf("%08X ", pCanObj[i].ID);
-
-			if (pCanObj[i].RemoteFlag == 1)
-			{
-				printf("Remote ");
-			}
-			else
-			{
-				printf("Data ");
-			}
-
-			if (pCanObj[i].ExternFlag == 1)
-			{
-				printf("Extended ");
-			}
-			else
-			{
-				printf("Standard ");
-			}
-
-			printf("len = %d, [", pCanObj[i].DataLen);
-			for (int j = 0; j < pCanObj[i].DataLen; j++)
-			{
-				printf("%02X ", pCanObj[i].Data[j]);
-			}
-
-			printf("]\n");
+			LOG(EError, CANPROXY, "node1 write failed, iWrited = %d\n", iWrited);
+			break;
 		}
-
-		Sleep(10);
 	}
+	LOG(EInfo, CANPROXY, "ThreadNode2ToNode1 end\n");
+}
+
+void ThreadCtrl(CProxy* proxy)
+{
+	LOG(EInfo, CANPROXY, "ThreadCtrl start\n");
+	int iRet = 0;
+	while (!proxy->m_bGetTerminate())
+	{
+		iRet = proxy->m_pstNode1->m_iStart();
+		if (iRet != 0)
+		{
+			LOG(EError, CANPROXY, "node1 start failed, iRet = %d\n", iRet);
+			Sleep(5000);
+			continue;
+		}
+
+		iRet = proxy->m_pstNode2->m_iStart();
+		if (iRet != 0)
+		{
+			LOG(EError, CANPROXY, "node2 start failed, iRet = %d\n", iRet);
+			Sleep(5000);
+			continue;
+		}
+
+		std::thread t1(ThreadNode1ToNode2, proxy);
+		std::thread t2(ThreadNode2ToNode1, proxy);
+
+		t1.join();
+		t2.join();
+
+		proxy->m_pstNode1->m_iStop();
+		proxy->m_pstNode2->m_iStop();
+		Sleep(5000);
+	}
+	LOG(EInfo, CANPROXY, "ThreadCtrl end\n");
+}
+
+void CProxy::m_vStart()
+{
+	m_vSetTerminate(false);
+	m_pstCtrlThread = new std::thread(ThreadCtrl, this);
+}
+
+void CProxy::m_vStop()
+{
+	m_vSetTerminate(true);
+	m_pstCtrlThread->join();
+}
+
+void CProxy::m_vSetTerminate(bool val)
+{
+	m_stMutex.lock();
+	m_bTerminate = val;
+	m_stMutex.unlock();
+}
+
+bool CProxy::m_bGetTerminate()
+{
+	bool val;
+	m_stMutex.lock();
+	val = m_bTerminate;
+	m_stMutex.unlock();
+	return val;
 }

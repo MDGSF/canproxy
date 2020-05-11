@@ -177,7 +177,7 @@ iTapWrite 从物理层向虚拟网卡写数据，网卡收到数据后会向上发送给系统的协议栈。
 @return 成功：返回成功发送的数据长度。
 		失败：-1。
 */
-int iTapWrite(TAPHandle handle, char* pcBuf, int iLen)
+int iTapWrite(TAPHandle handle, const char* pcBuf, int iLen)
 {
 	DWORD iSize;
 
