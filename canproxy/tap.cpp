@@ -147,14 +147,15 @@ iTapRead 从虚拟网卡读取物理层的数据，这些数据都是系统上层协议栈传输下来的。
 */
 int iTapRead(TAPHandle handle, char* pcBuf, int iLen)
 {
-	DWORD iSize, last_err;
+	DWORD iSize;
+	DWORD ulErr;
 
 	ResetEvent(overlap_read.hEvent);
 	if (ReadFile(handle, pcBuf, iLen, &iSize, &overlap_read))
 	{
 		return iSize;
 	}
-	switch (last_err = GetLastError())
+	switch (ulErr = GetLastError())
 	{
 	case ERROR_IO_PENDING:
 		WaitForSingleObject(overlap_read.hEvent, INFINITE);
@@ -162,7 +163,7 @@ int iTapRead(TAPHandle handle, char* pcBuf, int iLen)
 		return iSize;
 		break;
 	default:
-		LOG(EError, TAPDEMO, "GetLastError() returned %d\n", last_err);
+		LOG(EError, TAPDEMO, "GetLastError() returned %d\n", ulErr);
 		break;
 	}
 
@@ -180,20 +181,23 @@ iTapWrite 从物理层向虚拟网卡写数据，网卡收到数据后会向上发送给系统的协议栈。
 int iTapWrite(TAPHandle handle, const char* pcBuf, int iLen)
 {
 	DWORD iSize;
+	DWORD ulErr;
 
 	ResetEvent(overlap_write.hEvent);
 	if (WriteFile(handle, pcBuf, iLen, &iSize, &overlap_write))
 	{
 		return iSize;
 	}
-	switch (GetLastError())
+
+	ulErr = GetLastError();
+	switch (ulErr)
 	{
 	case ERROR_IO_PENDING:
 		WaitForSingleObject(overlap_write.hEvent, INFINITE);
 		GetOverlappedResult(handle, &overlap_write, &iSize, FALSE);
 		return iSize;
-		break;
 	default:
+		LOG(EError, TAPDEMO, "iTapWrite GetLastError() returned %d\n", ulErr);
 		break;
 	}
 	return -1;
