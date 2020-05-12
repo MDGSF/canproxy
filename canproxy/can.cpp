@@ -102,62 +102,69 @@ int iCanRead(char* pcBuf, int iLen)
 	{
 		return 0;
 	}
+	if (stCanHeader.ID != g_uiID)
+	{
+		// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
+		return 0;
+	}
 
 	uint64_t u64PayloadCanFrameNum = 0;
-	char* pcData = (char *)stCanHeader.Data;
+	char* pcData = (char*)stCanHeader.Data;
 	uint16_t usDataLen = stCanHeader.DataLen;
 	if (EXIT_SUCCESS != iDecode64(&u64PayloadCanFrameNum, &pcData, &usDataLen))
 	{
 		return -1;
 	}
 
-	char* pcBufOffset = pcBuf;
 	PVCI_CAN_OBJ pCanObj = (PVCI_CAN_OBJ)malloc(u64PayloadCanFrameNum * sizeof(VCI_CAN_OBJ));
-	iReceived = VCI_Receive(g_iDevType, g_iDevIndex, g_iCanIndex, pCanObj, u64PayloadCanFrameNum, 0);
-	if (iReceived == -1)
+	if (NULL == pCanObj)
 	{
-		LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
-		free(pCanObj);
+		LOG(EError, CANPROXY, "malloc failed, u64PayloadCanFrameNum = %d\n", u64PayloadCanFrameNum);
 		return -1;
 	}
 
-	if (iReceived != u64PayloadCanFrameNum)
-	{
-		LOG(EError, CANPROXY, "iReceived = %uld, u64PayloadCanFrameNum = %uld\n", iReceived, u64PayloadCanFrameNum);
-		free(pCanObj);
-		return -1;
-	}
+	LOG(EInfo, CANPROXY, "can read header success, u64PayloadCanFrameNum = %d\n", u64PayloadCanFrameNum);
 
-	if (iReceived * 8 > iLen)
+	char* pcBufOffset = pcBuf;
+	int iTotalReceived = 0;
+	while (iTotalReceived < u64PayloadCanFrameNum)
 	{
-		LOG(EError, CANPROXY, "can receive buffer too small, %d, %d\n", iReceived * 8, iLen);
-		free(pCanObj);
-		return -1;
-	}
-
-	for (int i = 0; i < iReceived; i++)
-	{
-		if (pCanObj[i].ID != g_uiID)
+		iReceived = VCI_Receive(g_iDevType, g_iDevIndex, g_iCanIndex, pCanObj, u64PayloadCanFrameNum - iTotalReceived, 0);
+		if (iReceived == -1)
 		{
-			// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
-			continue;
+			LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
+			free(pCanObj);
+			return -1;
 		}
 
-		if (pCanObj[i].RemoteFlag == 1)
+		for (int i = 0; i < iReceived; i++)
 		{
-			LOG(EError, CANPROXY, "can receive remote frame, expect data frame\n");
-			continue;
-		}
+			if (pCanObj[i].ID != g_uiID)
+			{
+				// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
+				continue;
+			}
 
-		if (pCanObj[i].ExternFlag == 1)
-		{
-			LOG(EError, CANPROXY, "can receive extended frame, expect standard frame\n");
-			continue;
-		}
+			if (pCanObj[i].RemoteFlag == 1)
+			{
+				LOG(EError, CANPROXY, "can receive remote frame, expect data frame\n");
+				continue;
+			}
 
-		memcpy(pcBufOffset, pCanObj[i].Data, pCanObj[i].DataLen);
-		pcBufOffset += pCanObj[i].DataLen;
+			if (pCanObj[i].ExternFlag == 1)
+			{
+				LOG(EError, CANPROXY, "can receive extended frame, expect standard frame\n");
+				continue;
+			}
+
+			iTotalReceived += 1;
+
+			memcpy(pcBufOffset, pCanObj[i].Data, pCanObj[i].DataLen);
+			pcBufOffset += pCanObj[i].DataLen;
+		}
 	}
+
+	LOG(EInfo, CANPROXY, "can read pay load success, len = %d\n", pcBufOffset - pcBuf);
 
 	free(pCanObj);
 	Sleep(10);
