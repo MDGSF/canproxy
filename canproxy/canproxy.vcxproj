@@ -149,6 +149,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="CProxy.cpp" />
     <ClCompile Include="tap.cpp" />
+    <ClCompile Include="unitcodec.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="can.h" />
@@ -160,6 +161,7 @@
     <ClInclude Include="CProxy.h" />
     <ClInclude Include="tap-windows.h" />
     <ClInclude Include="tap.h" />
+    <ClInclude Include="unitcodec.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

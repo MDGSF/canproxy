@@ -3,6 +3,7 @@
 #include "can.h"
 #include "ControlCAN.h"
 #include "log.h"
+#include "unitcodec.h"
 
 /*
 CAN波特率    Timing0(BTR0)    Timing1(BTR1)
@@ -90,19 +91,47 @@ iCanRead 从 can 设备读取数据。
 */
 int iCanRead(char* pcBuf, int iLen)
 {
-	char* pcBufOffset = pcBuf;
-	const int iCanObjBufLen = 200;
-	VCI_CAN_OBJ pCanObj[iCanObjBufLen];
-	int iReceived = VCI_Receive(g_iDevType, g_iDevIndex, g_iCanIndex, pCanObj, iCanObjBufLen, 0);
+	VCI_CAN_OBJ stCanHeader;
+	int iReceived = VCI_Receive(g_iDevType, g_iDevIndex, g_iCanIndex, &stCanHeader, 1, 0);
 	if (iReceived == -1)
 	{
 		LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
 		return -1;
 	}
+	if (iReceived == 0 || iReceived != 1 || stCanHeader.DataLen != 8)
+	{
+		return 0;
+	}
+
+	uint64_t u64PayloadCanFrameNum = 0;
+	char* pcData = (char *)stCanHeader.Data;
+	uint16_t usDataLen = stCanHeader.DataLen;
+	if (EXIT_SUCCESS != iDecode64(&u64PayloadCanFrameNum, &pcData, &usDataLen))
+	{
+		return -1;
+	}
+
+	char* pcBufOffset = pcBuf;
+	PVCI_CAN_OBJ pCanObj = (PVCI_CAN_OBJ)malloc(u64PayloadCanFrameNum * sizeof(VCI_CAN_OBJ));
+	iReceived = VCI_Receive(g_iDevType, g_iDevIndex, g_iCanIndex, pCanObj, u64PayloadCanFrameNum, 0);
+	if (iReceived == -1)
+	{
+		LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
+		free(pCanObj);
+		return -1;
+	}
+
+	if (iReceived != u64PayloadCanFrameNum)
+	{
+		LOG(EError, CANPROXY, "iReceived = %uld, u64PayloadCanFrameNum = %uld\n", iReceived, u64PayloadCanFrameNum);
+		free(pCanObj);
+		return -1;
+	}
 
 	if (iReceived * 8 > iLen)
 	{
-		LOG(EError, CANPROXY, "can receive buffer too small\n");
+		LOG(EError, CANPROXY, "can receive buffer too small, %d, %d\n", iReceived * 8, iLen);
+		free(pCanObj);
 		return -1;
 	}
 
@@ -110,7 +139,7 @@ int iCanRead(char* pcBuf, int iLen)
 	{
 		if (pCanObj[i].ID != g_uiID)
 		{
-			LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
+			// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
 			continue;
 		}
 
@@ -130,12 +159,38 @@ int iCanRead(char* pcBuf, int iLen)
 		pcBufOffset += pCanObj[i].DataLen;
 	}
 
+	free(pCanObj);
 	Sleep(10);
 	return int(pcBufOffset - pcBuf);
 }
 
 int iCanWrite(const char* pcBuf, int iLen)
 {
+	// send header
+	uint64_t u64PayloadCanFrameNum = iLen / 8;
+	if (iLen % 8 != 0)
+	{
+		u64PayloadCanFrameNum++;
+	}
+
+	VCI_CAN_OBJ stCanHeader;
+	stCanHeader.ID = g_uiID;
+	stCanHeader.RemoteFlag = 0;
+	stCanHeader.ExternFlag = 0;
+	stCanHeader.DataLen = DEFAULT_CAN_DATA_SIZE;
+
+	char* pcData = (char*)stCanHeader.Data;
+	uint16_t usDataLen = DEFAULT_CAN_DATA_SIZE;
+	iEncode64(u64PayloadCanFrameNum, &pcData, &usDataLen);
+
+	int ret = VCI_Transmit(g_iDevType, g_iDevIndex, g_iCanIndex, &stCanHeader, 1);
+	if (ret == -1)
+	{
+		LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
+		return -1;
+	}
+
+	// send pay load
 	const char* pcBufOffset = pcBuf;
 	int iLeftLen = iLen;
 	while (iLeftLen > 0)

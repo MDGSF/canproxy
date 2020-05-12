@@ -8,7 +8,7 @@
 int main()
 {
 	SetLogLevel(EInfo);
-	//SetLogLevel(ETrace);
+	SetLogLevel(ETrace);
 	LOG(EInfo, CANPROXY, "can proxy\n");
 
 	CNodeTun stNode1;
@@ -17,7 +17,10 @@ int main()
 	
 	proxy->m_vStart();
 
-	Sleep(300000);
+	while (true)
+	{
+		Sleep(30000000000);
+	}
 
 	proxy->m_vStop();
 

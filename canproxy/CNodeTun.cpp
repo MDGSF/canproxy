@@ -3,7 +3,7 @@
 
 int CNodeTun::m_iStart()
 {
-	m_handle = iTapOpen("192.168.0.100", "255.255.255.0");
+	m_handle = iTapOpen("192.168.20.100", "255.255.255.0");
 	if (m_handle == NULL)
 	{
 		return -1;
