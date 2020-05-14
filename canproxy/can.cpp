@@ -4,6 +4,7 @@
 #include "ControlCAN.h"
 #include "log.h"
 #include "unitcodec.h"
+#include "global.h"
 
 /*
 CAN波特率    Timing0(BTR0)    Timing1(BTR1)
@@ -28,18 +29,12 @@ CAN波特率    Timing0(BTR0)    Timing1(BTR1)
 
 #define DEFAULT_CAN_DATA_SIZE 8
 
-int g_iDevType = VCI_USBCAN2;
-int g_iDevIndex = 0;
-int g_iCanIndex = 0;
-
 /*
 =0表示正常模式（相当于正常节点）
 =1表示只听模式（只接收，不影响总线）
 =2表示自发自收模式（环回模式）
 */
 unsigned char g_ucMode = 0;
-
-unsigned int g_uiID = 520;
 
 /*
 iCanStart 启动 can 设备。
@@ -102,9 +97,9 @@ int iCanRead(char* pcBuf, int iLen)
 	{
 		return 0;
 	}
-	if (stCanHeader.ID != g_uiID)
+	if (stCanHeader.ID != g_uiCanID)
 	{
-		// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
+		// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiCanID, g_uiCanID);
 		return 0;
 	}
 
@@ -139,9 +134,9 @@ int iCanRead(char* pcBuf, int iLen)
 
 		for (int i = 0; i < iReceived; i++)
 		{
-			if (pCanObj[i].ID != g_uiID)
+			if (pCanObj[i].ID != g_uiCanID)
 			{
-				// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiID, g_uiID);
+				// LOG(ETrace, CANPROXY, "can receive frame id = %d[%X], expect %d[%X]\n", pCanObj[i].ID, pCanObj[i].ID, g_uiCanID, g_uiCanID);
 				continue;
 			}
 
@@ -181,7 +176,7 @@ int iCanWrite(const char* pcBuf, int iLen)
 	}
 
 	VCI_CAN_OBJ stCanHeader;
-	stCanHeader.ID = g_uiID;
+	stCanHeader.ID = g_uiCanID;
 	stCanHeader.RemoteFlag = 0;
 	stCanHeader.ExternFlag = 0;
 	stCanHeader.DataLen = DEFAULT_CAN_DATA_SIZE;
@@ -206,7 +201,7 @@ int iCanWrite(const char* pcBuf, int iLen)
 		VCI_CAN_OBJ pCanObj[iCanObjBufLen];
 		for (int i = 0; i < iCanObjBufLen; i++)
 		{
-			pCanObj[i].ID = g_uiID;
+			pCanObj[i].ID = g_uiCanID;
 			pCanObj[i].RemoteFlag = 0;
 			pCanObj[i].ExternFlag = 0;
 

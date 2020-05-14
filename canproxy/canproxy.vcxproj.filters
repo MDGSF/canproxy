@@ -9,12 +9,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="public">
+      <UniqueIdentifier>{4258e168-147d-4c87-ac55-162785291a5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\getopt9">
+      <UniqueIdentifier>{c7470eb6-a01d-4fdb-a16f-dece5ca134b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="log.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tap.cpp">
@@ -32,15 +35,21 @@
     <ClCompile Include="can.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="unitcodec.cpp">
+    <ClCompile Include="..\public\unitcodec.cpp">
+      <Filter>public</Filter>
+    </ClCompile>
+    <ClCompile Include="..\public\log.cpp">
+      <Filter>public</Filter>
+    </ClCompile>
+    <ClCompile Include="..\public\getopt9\getopt.c">
+      <Filter>public\getopt9</Filter>
+    </ClCompile>
+    <ClCompile Include="global.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ControlCAN.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="log.h">
       <Filter>源文件</Filter>
     </ClInclude>
     <ClInclude Include="tap.h">
@@ -64,7 +73,19 @@
     <ClInclude Include="can.h">
       <Filter>源文件</Filter>
     </ClInclude>
-    <ClInclude Include="unitcodec.h">
+    <ClInclude Include="..\public\unitcodec.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\log.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\getopt9\getopt.h">
+      <Filter>public\getopt9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\getopt9\tailor.h">
+      <Filter>public\getopt9</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>

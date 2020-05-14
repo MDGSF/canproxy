@@ -2,6 +2,11 @@
 #include "log.h"
 #include "can.h"
 
+const char* CNodeCan::m_pcName()
+{
+	return "Can";
+}
+
 int CNodeCan::m_iStart()
 {
 	return iCanStart();

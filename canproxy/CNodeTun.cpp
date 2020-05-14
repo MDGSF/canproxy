@@ -1,9 +1,15 @@
 #include <stdio.h>
+#include "global.h"
 #include "CNodeTun.h"
+
+const char* CNodeTun::m_pcName()
+{
+	return "Tun";
+}
 
 int CNodeTun::m_iStart()
 {
-	m_handle = iTapOpen("192.168.20.100", "255.255.255.0");
+	m_handle = iTapOpen(g_acTunIPAddr, g_acTunIPMask, g_acTunAdapterDescription);
 	if (m_handle == NULL)
 	{
 		return -1;

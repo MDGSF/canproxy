@@ -26,16 +26,16 @@ iTapOpen 打开网卡设置 IP 地址并启动运行。
 @return 成功：返回虚拟网卡的文件读写句柄。
 		失败：返回 NULL。
 */
-TAPHandle iTapOpen(const char* pcIP, const char* pcMask)
+TAPHandle iTapOpen(const char* pcIP, const char* pcMask, const char* pcAdapterDescription)
 {
 	char acAdapterID[MAX_PATH] = { 0 };
-	if (0 != iGetAdapterGUID(ADAPTER_DESCRIPTION, acAdapterID, sizeof(acAdapterID)))
+	if (0 != iGetAdapterGUID(pcAdapterDescription, acAdapterID, sizeof(acAdapterID)))
 	{
 		LOG(EError, TAPDEMO, "get adapter GUID failed\n");
 		return NULL;
 	}
 
-	LOG(EInfo, TAPDEMO, "AdapterDescription = %s\n", ADAPTER_DESCRIPTION);
+	LOG(EInfo, TAPDEMO, "AdapterDescription = %s\n", pcAdapterDescription);
 	LOG(EInfo, TAPDEMO, "acAdapterID = %s\n", acAdapterID);
 
 	char acDeviceName[MAX_PATH] = { 0 };
@@ -147,26 +147,24 @@ iTapRead 从虚拟网卡读取物理层的数据，这些数据都是系统上层协议栈传输下来的。
 */
 int iTapRead(TAPHandle handle, char* pcBuf, int iLen)
 {
-	DWORD iSize;
+	DWORD ulSize;
 	DWORD ulErr;
 
 	ResetEvent(overlap_read.hEvent);
-	if (ReadFile(handle, pcBuf, iLen, &iSize, &overlap_read))
+	if (ReadFile(handle, pcBuf, iLen, &ulSize, &overlap_read))
 	{
-		return iSize;
+		return ulSize;
 	}
 	switch (ulErr = GetLastError())
 	{
 	case ERROR_IO_PENDING:
 		WaitForSingleObject(overlap_read.hEvent, INFINITE);
-		GetOverlappedResult(handle, &overlap_read, &iSize, FALSE);
-		return iSize;
-		break;
+		GetOverlappedResult(handle, &overlap_read, &ulSize, FALSE);
+		return ulSize;
 	default:
 		LOG(EError, TAPDEMO, "GetLastError() returned %d\n", ulErr);
 		break;
 	}
-
 	return -1;
 }
 
@@ -180,13 +178,13 @@ iTapWrite 从物理层向虚拟网卡写数据，网卡收到数据后会向上发送给系统的协议栈。
 */
 int iTapWrite(TAPHandle handle, const char* pcBuf, int iLen)
 {
-	DWORD iSize;
+	DWORD ulSize;
 	DWORD ulErr;
 
 	ResetEvent(overlap_write.hEvent);
-	if (WriteFile(handle, pcBuf, iLen, &iSize, &overlap_write))
+	if (WriteFile(handle, pcBuf, iLen, &ulSize, &overlap_write))
 	{
-		return iSize;
+		return ulSize;
 	}
 
 	ulErr = GetLastError();
@@ -194,8 +192,8 @@ int iTapWrite(TAPHandle handle, const char* pcBuf, int iLen)
 	{
 	case ERROR_IO_PENDING:
 		WaitForSingleObject(overlap_write.hEvent, INFINITE);
-		GetOverlappedResult(handle, &overlap_write, &iSize, FALSE);
-		return iSize;
+		GetOverlappedResult(handle, &overlap_write, &ulSize, FALSE);
+		return ulSize;
 	default:
 		LOG(EError, TAPDEMO, "iTapWrite GetLastError() returned %d\n", ulErr);
 		break;

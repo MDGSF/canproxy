@@ -1,6 +1,11 @@
 #pragma once
 
+#ifdef _WIN32
 #define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
+
 #define MAX_LOG_BUFFER_SIZE 1400
 
 typedef enum {
