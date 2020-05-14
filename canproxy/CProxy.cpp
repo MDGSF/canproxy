@@ -51,6 +51,9 @@ void ThreadNodeProxy(CProxy* pstProxy, CNode* pstSrc, CNode* pstDst)
 			LOG(EError, CANPROXY, "[%s] write failed, iWrited = %d\n", pstDst->m_pcName(), iWrited);
 			break;
 		}
+
+		// 测试，限制发送速度
+		Sleep(100);
 	}
 	LOG(EInfo, CANPROXY, "ThreadNodeProxy end, %s --> %s\n",
 		pstSrc->m_pcName(), pstDst->m_pcName());

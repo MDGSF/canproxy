@@ -6,6 +6,16 @@
 #include "unitcodec.h"
 #include "global.h"
 
+void vPrintBuf(const char* pcBuf, int iLen)
+{
+	printf("iLen = %d, [", iLen);
+	for (int i = 0; i < iLen; i++)
+	{
+		printf("%02X ", pcBuf[i]);
+	}
+	printf("]\n");
+}
+
 /*
 CAN波特率    Timing0(BTR0)    Timing1(BTR1)
 10 Kbps         0x31             0x1C
@@ -168,6 +178,8 @@ int iCanRead(char* pcBuf, int iLen)
 
 int iCanWrite(const char* pcBuf, int iLen)
 {
+	LOG(ETrace, CANPROXY, "iCanWrite start, iLen = %d\n", iLen);
+
 	// send header
 	uint64_t u64PayloadCanFrameNum = iLen / 8;
 	if (iLen % 8 != 0)
@@ -183,7 +195,11 @@ int iCanWrite(const char* pcBuf, int iLen)
 
 	char* pcData = (char*)stCanHeader.Data;
 	uint16_t usDataLen = DEFAULT_CAN_DATA_SIZE;
-	iEncode64(u64PayloadCanFrameNum, &pcData, &usDataLen);
+	if (EXIT_SUCCESS != iEncode64(u64PayloadCanFrameNum, &pcData, &usDataLen))
+	{
+		LOG(EError, CANPROXY, "encode can header failed\n");
+		return -1;
+	}
 
 	int ret = VCI_Transmit(g_iDevType, g_iDevIndex, g_iCanIndex, &stCanHeader, 1);
 	if (ret == -1)
@@ -191,6 +207,9 @@ int iCanWrite(const char* pcBuf, int iLen)
 		LOG(EError, CANPROXY, "USB-CAN设备不存在或USB掉线\n");
 		return -1;
 	}
+
+	LOG(ETrace, CANPROXY, "iCanWrite send header success, u64PayloadCanFrameNum = %d\n", u64PayloadCanFrameNum);
+	vPrintBuf((const char *)stCanHeader.Data, 8);
 
 	// send pay load
 	const char* pcBufOffset = pcBuf;
@@ -220,6 +239,17 @@ int iCanWrite(const char* pcBuf, int iLen)
 				iLeftLen = 0;
 			}
 		}
+
+		/*LOG(ETrace, CANPROXY, "iCanWrite send payload, iLeftLen = %d\n", iLeftLen);
+		vPrintBuf((const char*)pCanObj[0].Data, pCanObj[0].DataLen);*/
+
+		/*printf("[");
+		for (int i = 0; i < pCanObj[0].DataLen; i++)
+		{
+			printf("%02X ", pCanObj[0].Data[i]);
+		}
+		printf("]\n");*/
+
 		int ret = VCI_Transmit(g_iDevType, g_iDevIndex, g_iCanIndex, pCanObj, iCanObjBufLen);
 		if (ret == -1)
 		{
@@ -227,6 +257,8 @@ int iCanWrite(const char* pcBuf, int iLen)
 			return -1;
 		}
 	}
+
+	LOG(ETrace, CANPROXY, "iCanWrite end\n");
 	return iLen - iLeftLen;
 }
 
